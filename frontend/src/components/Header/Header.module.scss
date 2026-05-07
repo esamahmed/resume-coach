@@ -1,0 +1,57 @@
+@use '../../styles/variables' as v;
+
+.header {
+  padding: 0 2rem;
+  height: v.$header-height;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid v.$border;
+  background: rgba(250, 249, 246, 0.92);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  background: v.$accent;
+  border-radius: v.$radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    color: v.$white;
+  }
+}
+
+.logo-text {
+  font-family: v.$font-display;
+  font-size: 1.1rem;
+  color: v.$ink;
+  letter-spacing: -0.01em;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: v.$surface-2;
+  color: v.$ink-3;
+  padding: 4px 10px;
+  border-radius: v.$radius-pill;
+  border: 1px solid v.$border;
+  text-transform: uppercase;
+}

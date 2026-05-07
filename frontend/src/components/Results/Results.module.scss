@@ -1,0 +1,38 @@
+@use '../../styles/variables' as v;
+
+.results {
+  animation: fadeInUp 0.4s ease;
+}
+
+.results-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  h2 {
+    font-family: v.$font-display;
+    font-size: 1.8rem;
+    color: v.$ink;
+  }
+}
+
+.new-btn {
+  padding: 0.6rem 1.2rem;
+  background: v.$white;
+  border: 1.5px solid v.$border;
+  border-radius: v.$radius-sm;
+  font-family: v.$font-body;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: v.$ink-2;
+  cursor: pointer;
+  transition: v.$transition;
+
+  &:hover {
+    border-color: v.$accent;
+    color: v.$accent;
+  }
+}

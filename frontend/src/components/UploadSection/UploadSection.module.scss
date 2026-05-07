@@ -1,0 +1,126 @@
+@use '../../styles/variables' as v;
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 2rem;
+
+  @media (max-width: v.$bp-md) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.upload-card {
+  background: v.$white;
+  border: 1.5px dashed v.$surface-3;
+  border-radius: v.$radius;
+  padding: 1.75rem 1.5rem;
+  cursor: pointer;
+  transition: v.$transition;
+  text-align: center;
+
+  &:hover,
+  &.drag-over {
+    border-color: v.$accent;
+    background: v.$accent-bg;
+  }
+
+  &.has-file {
+    border-style: solid;
+    border-color: v.$success;
+    background: v.$success-bg;
+  }
+
+  &--static {
+    cursor: default;
+
+    h3,
+    p { text-align: left; }
+  }
+
+  input { display: none; }
+}
+
+.upload-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.upload-card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: v.$ink;
+  margin-bottom: 0.3rem;
+}
+
+.upload-card p {
+  font-size: 0.82rem;
+  color: v.$ink-3;
+}
+
+// ── Job description textarea ────────────────────────────────────────────────
+.jd-area {
+  margin-top: 1.25rem;
+  background: v.$white;
+  border-radius: v.$radius;
+  border: 1.5px solid v.$border;
+  overflow: hidden;
+
+  label {
+    display: block;
+    padding: 0.9rem 1.25rem 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: v.$ink-3;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 0.75rem 1.25rem 1.25rem;
+    border: none;
+    outline: none;
+    font-family: v.$font-body;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: v.$ink;
+    background: transparent;
+    resize: vertical;
+    min-height: 130px;
+  }
+}
+
+// ── Analyze button ──────────────────────────────────────────────────────────
+.analyze-btn {
+  margin-top: 1.5rem;
+  width: 100%;
+  padding: 1rem 2rem;
+  background: v.$accent;
+  color: v.$white;
+  border: none;
+  border-radius: v.$radius-sm;
+  font-family: v.$font-body;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: v.$transition;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:hover:not(:disabled) {
+    background: v.$accent-dark;
+    transform: translateY(-1px);
+    box-shadow: v.$shadow-lg;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}

@@ -1,0 +1,75 @@
+@use '../../../styles/variables' as v;
+
+.pass-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &--HIGH   { background: v.$success-bg; color: v.$success; }
+  &--MEDIUM { background: v.$warn-bg;    color: #633806;    }
+  &--LOW    { background: v.$danger-bg;  color: v.$danger;  }
+}
+
+.meter {
+  height: 8px;
+  background: v.$surface-3;
+  border-radius: 4px;
+  margin: 1rem 0 0.25rem;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: v.$accent;
+  transition: width 0.6s ease;
+}
+
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 1rem;
+
+  @media (max-width: v.$bp-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mini-score {
+  background: v.$surface;
+  border-radius: v.$radius-sm;
+  padding: 0.75rem;
+  text-align: center;
+
+  .mini-label {
+    font-size: 0.72rem;
+    color: v.$ink-3;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .mini-value {
+    font-family: v.$font-display;
+    font-size: 1.3rem;
+    color: v.$accent;
+  }
+}
+
+.pass-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.pass-note {
+  font-size: 0.85rem;
+  color: v.$ink-3;
+}

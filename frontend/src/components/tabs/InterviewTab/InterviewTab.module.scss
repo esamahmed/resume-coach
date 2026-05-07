@@ -1,0 +1,40 @@
+@use '../../../styles/variables' as v;
+
+.question-card {
+  background: v.$surface;
+  border-radius: v.$radius-sm;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid v.$border;
+}
+
+.question-type {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+}
+
+.question-text {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: v.$ink;
+  margin-bottom: 0.5rem;
+}
+
+.question-gap {
+  font-size: 0.75rem;
+  color: v.$warn;
+  margin-top: 0.25rem;
+}
+
+.question-hint {
+  font-size: 0.8rem;
+  color: v.$ink-3;
+  border-top: 1px solid v.$border;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+
+  strong { color: v.$ink-2; }
+}

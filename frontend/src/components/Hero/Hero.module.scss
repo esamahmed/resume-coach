@@ -1,0 +1,27 @@
+@use '../../styles/variables' as v;
+
+.hero {
+  text-align: center;
+  padding: 3rem 0 2.5rem;
+
+  h1 {
+    font-family: v.$font-display;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    color: v.$ink;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+
+    em {
+      font-style: italic;
+      color: v.$accent;
+    }
+  }
+
+  p {
+    font-size: 1.05rem;
+    color: v.$ink-2;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+}

@@ -1,0 +1,82 @@
+@use '../../../styles/variables' as v;
+
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rec-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  background: v.$surface;
+  border-radius: v.$radius-sm;
+  border-left: 3px solid v.$accent;
+}
+
+.rec-priority {
+  min-width: 28px;
+  height: 28px;
+  background: v.$accent;
+  color: v.$white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.rec-content {
+  h4 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: v.$ink;
+    margin-bottom: 0.2rem;
+  }
+
+  p {
+    font-size: 0.83rem;
+    color: v.$ink-2;
+    line-height: 1.5;
+  }
+
+  .example {
+    margin-top: 0.25rem;
+    color: v.$ink-3;
+    font-style: italic;
+    font-size: 0.8rem;
+  }
+}
+
+.bullet-rewrite {
+  background: v.$surface;
+  border-radius: v.$radius-sm;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid v.$border;
+}
+
+.bullet-original {
+  font-size: 0.82rem;
+  color: v.$ink-3;
+  margin-bottom: 0.5rem;
+  text-decoration: line-through;
+}
+
+.bullet-improved {
+  font-size: 0.88rem;
+  color: v.$success;
+  font-weight: 500;
+}
+
+.bullet-why {
+  font-size: 0.78rem;
+  color: v.$ink-3;
+  margin-top: 0.4rem;
+  font-style: italic;
+}

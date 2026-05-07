@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Environment — NEVER commit this
+.env
+
+# Frontend build and deps
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Data / models
+data/
+eval/scores/
+eval/corpus_hash.txt
+
+# AWS
+.aws/
+
+# IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Windows
+*:Zone.Identifier
