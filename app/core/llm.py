@@ -49,11 +49,26 @@ def get_llm():
                 "REPLICATE_API_TOKEN is not set. "
                 "Sign up at https://replicate.com and add your token to .env"
             )
+        from langchain_community.llms import Replicate
+        import os
+        os.environ["REPLICATE_API_TOKEN"] = settings.replicate_api_token
+
         model_str = settings.replicate_model
         if settings.replicate_model_version:
             model_str = f"{model_str}:{settings.replicate_model_version}"
+
         logger.info("LLM: Replicate — model=%s", model_str)
-        return _build_replicate_llm(settings, model_str)
+        return Replicate(
+            model=model_str,
+            model_kwargs={
+                "temperature": settings.llm_temperature,
+                "max_new_tokens": settings.llm_max_tokens,
+                "system_prompt": (
+                    "You are an expert resume coach and career strategist. "
+                    "Always respond with valid JSON when asked to do so."
+                ),
+            },
+        )
 
     # ── SageMaker (self-hosted Mistral — required for graded submission) ───────
     if provider == "sagemaker":
@@ -97,85 +112,20 @@ def get_llm():
     )
 
 
-def _build_replicate_llm(settings: Any, model_str: str):
-    """
-    Wraps the Replicate API as a LangChain chat model.
-    langchain_community.llms.Replicate is avoided because it fetches the model's
-    OpenAPI schema at init time and errors when the schema is None.
-    """
-    import replicate as replicate_sdk
-    from langchain_core.language_models.chat_models import BaseChatModel
-    from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-    from langchain_core.outputs import ChatGeneration, ChatResult
-    from typing import Optional, List
-
-    class ReplicateChatModel(BaseChatModel):
-        api_token: str
-        model: str
-        temperature: float
-        max_new_tokens: int
-
-        @property
-        def _llm_type(self) -> str:
-            return "replicate"
-
-        def _generate(
-            self,
-            messages: List[BaseMessage],
-            stop: Optional[List[str]] = None,
-            **kwargs: Any,
-        ) -> ChatResult:
-            import time
-
-            system = "\n".join(m.content for m in messages if isinstance(m, SystemMessage))
-            human  = "\n".join(m.content for m in messages if isinstance(m, HumanMessage))
-            if system:
-                prompt = f"<s>[INST] <<SYS>>\n{system}\n<</SYS>>\n\n{human} [/INST]"
-            else:
-                prompt = f"<s>[INST] {human} [/INST]"
-
-            client = replicate_sdk.Client(api_token=self.api_token)
-            # Replicate free tier: burst=1, 6 req/min. Retry with backoff on 429.
-            wait = 12
-            for attempt in range(4):
-                try:
-                    output = client.run(
-                        self.model,
-                        input={
-                            "prompt": prompt,
-                            "temperature": self.temperature,
-                            "max_new_tokens": self.max_new_tokens,
-                        },
-                    )
-                    text = "".join(output) if hasattr(output, "__iter__") else str(output)
-                    return ChatResult(generations=[ChatGeneration(message=AIMessage(content=text))])
-                except Exception as exc:
-                    if attempt < 3 and "429" in str(exc):
-                        logger.warning("Replicate 429 — waiting %ds before retry (attempt %d/3)", wait, attempt + 1)
-                        time.sleep(wait)
-                        wait *= 2
-                    else:
-                        raise
-
-    return ReplicateChatModel(
-        api_token=settings.replicate_api_token,
-        model=model_str,
-        temperature=settings.llm_temperature,
-        max_new_tokens=settings.llm_max_tokens,
-    )
-
-
 def _build_sagemaker_llm(settings: Any):
     """
-    Wraps the SageMaker endpoint as a LangChain-compatible LLM.
-    Uses a custom LLM class because SageMaker requires direct boto3 invocation
-    with Mistral's specific prompt format.
+    Wraps SageMaker endpoint as a LangChain ChatModel.
+    Returns AIMessage with .content — compatible with all agents.
     """
     import boto3
-    from langchain.llms.base import LLM
+    import json
+    from botocore.config import Config as BotocoreConfig
+    from langchain_core.language_models.chat_models import BaseChatModel
+    from langchain_core.messages import AIMessage, BaseMessage
+    from langchain_core.outputs import ChatResult, ChatGeneration
     from typing import Optional, List
 
-    class SageMakerMistralLLM(LLM):
+    class SageMakerMistralChat(BaseChatModel):
         endpoint_name: str
         region_name: str
         temperature: float
@@ -183,19 +133,26 @@ def _build_sagemaker_llm(settings: Any):
 
         @property
         def _llm_type(self) -> str:
-            return "sagemaker_mistral"
+            return "sagemaker_mistral_chat"
 
-        def _call(
+        def _generate(
             self,
-            prompt: str,
+            messages: List[BaseMessage],
             stop: Optional[List[str]] = None,
             **kwargs: Any,
-        ) -> str:
-            client = boto3.client("sagemaker-runtime", region_name=self.region_name)
-
-            # Mistral instruction format
+        ) -> ChatResult:
+            # Convert messages to Mistral instruction format
+            prompt = "\n".join(m.content for m in messages)
             formatted = f"<s>[INST] {prompt} [/INST]"
 
+            client = boto3.client(
+                "sagemaker-runtime",
+                region_name=self.region_name,
+                config=BotocoreConfig(
+                    read_timeout=300,
+                    connect_timeout=10,
+                )
+            )
             payload = {
                 "inputs": formatted,
                 "parameters": {
@@ -212,16 +169,20 @@ def _build_sagemaker_llm(settings: Any):
             )
             result = json.loads(response["Body"].read())
 
-            # SageMaker returns a list: [{"generated_text": "..."}]
             if isinstance(result, list) and result:
-                return result[0].get("generated_text", "").strip()
-            return str(result)
+                text = result[0].get("generated_text", "").strip()
+            else:
+                text = str(result)
 
-    return SageMakerMistralLLM(
+            return ChatResult(
+                generations=[ChatGeneration(message=AIMessage(content=text))]
+            )
+
+    return SageMakerMistralChat(
         endpoint_name=settings.sagemaker_endpoint_name,
         region_name=settings.sagemaker_region,
         temperature=settings.llm_temperature,
-        max_new_tokens=settings.llm_max_tokens,
+        max_new_tokens=settings.sagemaker_max_new_tokens,
     )
 
 

@@ -16,48 +16,28 @@ import logging
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.core.llm import get_llm
+from app.utils.json_utils import parse_llm_json
 from app.core.state import ResumeCoachState
 from app.observability.langfuse_tracer import get_tracer
 
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """\
-You are a world-class resume coach and career strategist specializing in \
-software engineering and AI/ML roles.
-
-Given a gap analysis, produce a structured coaching report that gives the \
-candidate clear, actionable steps to improve their resume for this specific role.
-
-You MUST respond with ONLY valid JSON — no prose, no markdown, no preamble:
+You are a resume coach. Given a gap analysis, return ONLY this JSON — \
+no prose, no markdown, no extra fields:
 
 {
-  "executive_summary": "<3 sentences: fit assessment + top priority action>",
-  "section_scores": {
-    "skills": <int 0-100>,
-    "experience": <int 0-100>,
-    "education": <int 0-100>,
-    "impact_statements": <int 0-100>,
-    "ats_optimization": <int 0-100>
-  },
+  "executive_summary": "One sentence assessment.",
   "recommendations": [
-    {
-      "priority": <1-10, 10=most urgent>,
-      "section": "<resume section>",
-      "action": "<specific action verb>",
-      "detail": "<concrete instruction>",
-      "example": "<optional example text>"
-    }
+    {"priority": 1, "action": "Add LangGraph to skills", "detail": "One sentence instruction."},
+    {"priority": 2, "action": "Quantify ML impact", "detail": "One sentence instruction."},
+    {"priority": 3, "action": "Add cloud certifications", "detail": "One sentence instruction."}
   ],
-  "rewritten_bullets": [
-    {
-      "original": "<original resume bullet>",
-      "rewritten": "<improved bullet with metrics and keywords>",
-      "why": "<brief explanation of what changed>"
-    }
-  ],
-  "missing_keywords_to_add": ["<keyword>"],
-  "cover_letter_angles": ["<angle>"]
+  "keywords_to_add": ["keyword1", "keyword2", "keyword3"]
 }
+
+Rules: exactly those 3 keys, recommendations has 2-3 items with short strings, \
+executive_summary is one sentence.
 """
 
 USER_PROMPT = """\
@@ -90,8 +70,8 @@ def run(state: ResumeCoachState) -> dict:
                 gap_analysis=json.dumps(gap, indent=2)[:3000],
                 critical_gaps=", ".join(gap.get("critical_gaps", [])[:5]),
                 fit_score=gap.get("overall_fit_score", "N/A"),
-                resume_excerpt=state["resume_text"][:3000],
-                jd_excerpt=state["jd_text"][:2000],
+                resume_excerpt=state["resume_text"][:1500],
+                jd_excerpt=state["jd_text"][:1000],
             )
 
             messages = [
@@ -100,13 +80,7 @@ def run(state: ResumeCoachState) -> dict:
             ]
 
             response = llm.invoke(messages)
-            raw = response.content.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-
-            coaching_report = json.loads(raw)
+            coaching_report = parse_llm_json(response.content)
             recs = len(coaching_report.get("recommendations", []))
             span.update(output={"recommendations_count": recs})
             logger.info("Coach writer complete — %d recommendations", recs)

@@ -20,6 +20,7 @@ import logging
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.core.llm import get_llm
+from app.utils.json_utils import parse_llm_json
 from app.core.state import ResumeCoachState
 from app.ml.ml_scorer import composite_score
 from app.observability.langfuse_tracer import get_tracer
@@ -100,13 +101,7 @@ def run(state: ResumeCoachState) -> dict:
             ]
 
             response = llm.invoke(messages)
-            raw = response.content.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-
-            llm_ats = json.loads(raw)
+            llm_ats = parse_llm_json(response.content)
 
             ats_report = {
                 **llm_ats,

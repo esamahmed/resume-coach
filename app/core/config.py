@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     # Deploy with: python scripts/deploy_sagemaker.py --model mistral
     sagemaker_endpoint_name: str = "resume-coach-mistral-7b"
     sagemaker_region: str = "us-east-1"
+    sagemaker_role_arn: str = ""   # arn:aws:iam::<account>:role/<role-name>
+    sagemaker_max_new_tokens: int = 1350  # ml.g5.2xlarge: ~25 tok/s → 1350 tokens ≈ 55s, within 60s hard limit
 
     # ── AWS Bedrock (fallback — Claude Sonnet) ────────────────────────────────
     bedrock_region: str = "us-east-1"

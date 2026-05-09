@@ -52,13 +52,16 @@ MODELS = {
 
 
 def deploy_from_jumpstart(model_key: str) -> str:
-    """
-    Deploy via SageMaker JumpStart — fastest path, no manual model download.
-    Returns the endpoint name.
-    """
     cfg = MODELS[model_key]
     session = sagemaker.Session()
-    region = session.boto_region_name
+
+    # Load role from env
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    role = os.getenv("SAGEMAKER_ROLE_ARN")
+    if not role:
+        raise ValueError("SAGEMAKER_ROLE_ARN not set in .env")
 
     logger.info("Deploying %s via JumpStart — instance: %s", cfg["hf_model_id"], cfg["instance_type"])
 
@@ -67,17 +70,20 @@ def deploy_from_jumpstart(model_key: str) -> str:
     model = JumpStartModel(
         model_id=cfg["model_id"],
         model_version=cfg["model_version"],
-        region_name=region,
+        sagemaker_session=session,
+        role=role,                    # ← add this
     )
 
     predictor = model.deploy(
         initial_instance_count=1,
         instance_type=cfg["instance_type"],
         endpoint_name=cfg["endpoint_name"],
+        model_data_download_timeout=1800,
+        container_startup_health_check_timeout=600,
+        routing_config={"RoutingStrategy": "LEAST_OUTSTANDING_REQUESTS"},
     )
 
     logger.info("Endpoint deployed: %s", cfg["endpoint_name"])
-    logger.info("Test it: python scripts/test_endpoint.py --endpoint %s", cfg["endpoint_name"])
     return cfg["endpoint_name"]
 
 
