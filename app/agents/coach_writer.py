@@ -6,8 +6,8 @@ LangGraph Node 2: Coach Writer
 Reads gap_analysis from shared state (never from a string serialization)
 and produces a structured coaching report with actionable bullet rewrites.
 
-This is the core value delivery: specific, prioritized recommendations
-grounded in the gap findings from Node 1.
+IMPORTANT: Returns ONLY fields this agent owns — never spreads full state.
+           Spreading causes parallel branch race conditions in LangGraph.
 """
 from __future__ import annotations
 import json
@@ -77,7 +77,7 @@ Produce the coaching report now. Respond with JSON only.
 """
 
 
-def run(state: ResumeCoachState) -> ResumeCoachState:
+def run(state: ResumeCoachState) -> dict:
     tracer = get_tracer()
     session_id = state.get("session_id", "")
     gap = state.get("gap_analysis", {})
@@ -111,8 +111,8 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
             span.update(output={"recommendations_count": recs})
             logger.info("Coach writer complete — %d recommendations", recs)
 
+            # ── Return ONLY owned fields — no **state spread ──────────────
             return {
-                **state,
                 "coaching_report": coaching_report,
                 "completed_nodes": ["coach_writer"],
             }
@@ -121,7 +121,6 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
             logger.error("coach_writer failed: %s", e)
             span.update(metadata={"error": str(e)})
             return {
-                **state,
                 "coaching_report": {"error": str(e)},
                 "errors": [f"coach_writer: {e}"],
                 "completed_nodes": ["coach_writer"],

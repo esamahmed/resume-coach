@@ -7,6 +7,9 @@ Gap-aware: generates questions specifically targeting the candidate's
 identified weaknesses, not generic interview questions.
 
 Reads gap_analysis from shared state.
+
+IMPORTANT: Returns ONLY fields this agent owns — never spreads full state.
+           Spreading causes parallel branch race conditions in LangGraph.
 """
 from __future__ import annotations
 import json
@@ -60,7 +63,7 @@ Respond with JSON only.
 """
 
 
-def run(state: ResumeCoachState) -> ResumeCoachState:
+def run(state: ResumeCoachState) -> dict:
     tracer = get_tracer()
     session_id = state.get("session_id", "")
     gap = state.get("gap_analysis", {})
@@ -94,8 +97,8 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
             span.update(output={"questions_count": len(questions)})
             logger.info("Interview generator complete — %d questions", len(questions))
 
+            # ── Return ONLY owned fields — no **state spread ──────────────
             return {
-                **state,
                 "interview_questions": questions,
                 "completed_nodes": ["interview_generator"],
             }
@@ -103,7 +106,6 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
         except Exception as e:
             logger.error("interview_generator failed: %s", e)
             return {
-                **state,
                 "interview_questions": [],
                 "errors": [f"interview_generator: {e}"],
                 "completed_nodes": ["interview_generator"],

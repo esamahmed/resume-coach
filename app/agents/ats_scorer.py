@@ -9,6 +9,9 @@ Combines:
   - Produces a composite ATS report
 
 Reads ml scores from shared state — no re-computation needed.
+
+IMPORTANT: Returns ONLY fields this agent owns — never spreads full state.
+           Spreading causes parallel branch race conditions in LangGraph.
 """
 from __future__ import annotations
 import json
@@ -70,7 +73,7 @@ Produce the ATS report now. Respond with JSON only.
 """
 
 
-def run(state: ResumeCoachState) -> ResumeCoachState:
+def run(state: ResumeCoachState) -> dict:
     tracer = get_tracer()
     session_id = state.get("session_id", "")
     tfidf = state.get("tfidf_ats_score", 0.0)
@@ -121,8 +124,8 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
                 comp, llm_ats.get("ats_pass_likelihood"),
             )
 
+            # ── Return ONLY owned fields — no **state spread ──────────────
             return {
-                **state,
                 "ats_report": ats_report,
                 "completed_nodes": ["ats_scorer"],
             }
@@ -130,7 +133,6 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
         except Exception as e:
             logger.error("ats_scorer failed: %s", e)
             return {
-                **state,
                 "ats_report": {
                     "error": str(e),
                     "composite_score": comp,

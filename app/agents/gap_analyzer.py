@@ -8,6 +8,9 @@ Output is stored in state["gap_analysis"] — downstream agents
 (coach writer, ATS scorer, Q&A) read this directly from shared state.
 
 Enforces JSON schema output — per capstone rubric (25% prompt engineering).
+
+IMPORTANT: Returns ONLY fields this agent owns — never spreads full state.
+           Spreading causes parallel branch race conditions in LangGraph.
 """
 from __future__ import annotations
 import json
@@ -69,7 +72,7 @@ Perform the gap analysis now. Respond with JSON only.
 """
 
 
-def run(state: ResumeCoachState) -> ResumeCoachState:
+def run(state: ResumeCoachState) -> dict:
     tracer = get_tracer()
     session_id = state.get("session_id", "")
 
@@ -78,7 +81,7 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
         try:
             llm = get_llm()
             prompt = USER_PROMPT.format(
-                resume_text=state["resume_text"][:6000],   # token budget
+                resume_text=state["resume_text"][:6000],
                 jd_text=state["jd_text"][:3000],
                 ats_score=state.get("tfidf_ats_score", 0.0),
                 missing_keywords=", ".join(state.get("missing_keywords", [])[:20]),
@@ -92,7 +95,6 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
             response = llm.invoke(messages)
             raw = response.content.strip()
 
-            # Strip accidental markdown fences
             if raw.startswith("```"):
                 raw = raw.split("```")[1]
                 if raw.startswith("json"):
@@ -102,8 +104,8 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
             span.update(output={"fit_score": gap_analysis.get("overall_fit_score")})
             logger.info("Gap analysis complete — fit_score=%s", gap_analysis.get("overall_fit_score"))
 
+            # ── Return ONLY owned fields — no **state spread ──────────────
             return {
-                **state,
                 "gap_analysis": gap_analysis,
                 "completed_nodes": ["gap_analyzer"],
             }
@@ -112,7 +114,6 @@ def run(state: ResumeCoachState) -> ResumeCoachState:
             logger.error("gap_analyzer failed: %s", e)
             span.update(metadata={"error": str(e)})
             return {
-                **state,
                 "gap_analysis": {"error": str(e), "overall_fit_score": 0},
                 "errors": [f"gap_analyzer: {e}"],
                 "completed_nodes": ["gap_analyzer"],
