@@ -1,0 +1,25 @@
+{
+  "input": {
+    "resume_text": "Senior Java Engineer with 20 years experience. Expert in Java, Spring Boot, Microservices, REST APIs, Kafka, Oracle, JPA, Hibernate. Experience with LangGraph, LangChain, AWS Bedrock, SageMaker, MLflow, Docker, Kubernetes, Terraform, GitHub Actions, DynamoDB, Lambda, API Gateway, S3, EventBridge, ECR, React, TypeScript. Strong background in ML/AI model deployment, cloud platforms, and distributed systems. MLOps tools and practices.",
+    "jd_text": "AI Engineer role at wealth management firm. Required: GCP, Slurm, agentic architecture experience, financial industry background, ML/AI model deployment. Preferred: Ray. Responsibilities include modernizing KYC platform using agentic architecture with decommission deadline of 2027."
+  },
+  "expected": {
+    "gap_analyzer": {
+      "missing_required_contains": ["GCP", "Slurm"],
+      "present_and_strong_contains": ["Java", "LangGraph", "SageMaker"],
+      "overall_fit_score_min": 70,
+      "overall_fit_score_max": 95
+    },
+    "interview_generator": {
+      "min_questions": 5,
+      "question_types_present": ["TECHNICAL", "SYSTEM_DESIGN", "BEHAVIORAL"]
+    }
+  },
+  "metadata": {
+    "fixture_id": "RC-001-java-to-ai-engineer",
+    "description": "Senior Java engineer applying for AI Engineer role at wealth management firm",
+    "scenario": "career_pivot",
+    "expected_fit_range": "high",
+    "created": "2026-05-08"
+  }
+}

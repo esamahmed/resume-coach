@@ -28,3 +28,4 @@ eval/corpus_hash.txt
 
 # Windows
 *:Zone.Identifier
+.claude/
