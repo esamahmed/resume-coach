@@ -14,7 +14,8 @@ of the impact of different prompt strategies on model performance."
 |---|---|---|---|
 | Llama-2-7B-Chat | Replicate (free tier) | $0 | Week 1 experimentation |
 | Mistral-7B-Instruct-v0.2 | Replicate (free tier) | $0 | Week 1 experimentation |
-| Llama-2-7B-Chat | AWS SageMaker (ml.g5.2xlarge) | ~$1.52/hr | Final deployment |
+| Llama-3-8B-Instruct | Replicate | ~$0.001/run | Week 2 dev — rate limited without $5 credit |
+| Mistral-7B-Instruct-v0.2 | AWS SageMaker (ml.g5.2xlarge) | ~$1.52/hr | Graded submission |
 | Claude Sonnet (Bedrock) | AWS Bedrock | Per-token | Baseline comparison |
 
 ---
@@ -248,3 +249,4 @@ or use FAISS RAG to retrieve only relevant chunks?
 4. **Mistral-7B-Instruct** followed JSON schema more reliably than Llama-2-7B-Chat
 5. **Temperature 0.1** is the production sweet spot for structured output tasks
 6. **RAG for Q&A** beats full-context for long documents — both faster and more grounded
+7. **Llama-3-8B-Instruct** on Replicate was faster than Mistral-7B but rate-limited on free tier — requires $5+ credit for parallel agent calls

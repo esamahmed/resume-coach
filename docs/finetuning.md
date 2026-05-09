@@ -189,8 +189,10 @@ After fine-tuning, merge LoRA weights and upload to S3:
 
 ```python
 # scripts/merge_and_upload.py
+import os
 from peft import AutoPeftModelForCausalLM
-import torch, boto3
+import torch
+import boto3
 
 # Merge LoRA into base model
 model = AutoPeftModelForCausalLM.from_pretrained(
@@ -200,15 +202,16 @@ model = AutoPeftModelForCausalLM.from_pretrained(
 merged = model.merge_and_unload()
 merged.save_pretrained("./models/merged")
 
-# Upload to S3
+# Upload to S3 — reads bucket from environment variable
+bucket = os.getenv("S3_BUCKET", "your-resume-coach-bucket-name")
 s3 = boto3.client("s3")
-import os
+
 for root, _, files in os.walk("./models/merged"):
     for f in files:
         path = os.path.join(root, f)
         key = "resume-coach/model/" + path.replace("./models/merged/", "")
-        s3.upload_file(path, "your-bucket", key)
-        print(f"Uploaded: {key}")
+        s3.upload_file(path, bucket, key)
+        print(f"Uploaded: {key} → s3://{bucket}/{key}")
 ```
 
 Then deploy from S3 artifact using the HuggingFace DLC (same as `scripts/deploy_sagemaker.py`
