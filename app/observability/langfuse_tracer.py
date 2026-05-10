@@ -5,6 +5,7 @@ Langfuse span-level tracing — every agent node emits its own span.
 Falls back silently to no-op if Langfuse is disabled, keys are missing,
 or the API version differs. The pipeline NEVER fails due to tracing errors.
 
+Compatible with Langfuse v4.x SDK.
 Set LANGFUSE_ENABLED=false in .env to skip tracing entirely during local dev.
 """
 from __future__ import annotations
@@ -63,26 +64,26 @@ class LangfuseTracer:
         """
         Context manager that emits a Langfuse span.
         Never raises — if tracing fails the pipeline continues normally.
+        Compatible with Langfuse v4.x SDK.
         """
         if not self._enabled or self._client is None:
             yield _NullSpan()
             return
 
-        span = _NullSpan()
+        trace = None
+        span = None
         try:
-            # Handle both Langfuse v2 and v3 API styles
-            if hasattr(self._client, 'trace'):
-                # v2: client.trace() → trace.span()
-                trace = self._client.trace(name=name, session_id=session_id)
-                span = trace.span(name=name, input=input_data or {})
-            elif hasattr(self._client, 'span'):
-                # v3: client.span() directly
-                span = self._client.span(name=name, input=input_data or {})
-            else:
-                logger.warning("Langfuse API version not recognised — using no-op span")
-                yield _NullSpan()
-                return
-
+            # Langfuse v4 API — create trace then span
+            trace = self._client.trace(
+                name=f"resume-coach-{name}",
+                session_id=session_id or None,
+                input=input_data or {},
+                tags=["resume-coach"],
+            )
+            span = trace.span(
+                name=name,
+                input=input_data or {},
+            )
         except Exception as e:
             logger.warning("Langfuse span creation failed, continuing: %s", e)
             yield _NullSpan()
@@ -90,17 +91,27 @@ class LangfuseTracer:
 
         try:
             yield span
-            try:
-                span.end()
-            except Exception:
-                pass
         except Exception as exc:
             try:
-                span.update(metadata={"error": str(exc)})
-                span.end()
+                if span:
+                    span.update(
+                        metadata={"error": str(exc)},
+                        level="ERROR",
+                    )
             except Exception:
                 pass
             raise
+        finally:
+            try:
+                if span:
+                    span.end()
+            except Exception:
+                pass
+            try:
+                if trace:
+                    trace.update(output={"status": "complete"})
+            except Exception:
+                pass
 
     def get_trace_url(self, session_id: str) -> str:
         if not self._enabled or self._client is None:

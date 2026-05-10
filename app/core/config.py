@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
-    langfuse_enabled: bool = True
+    langfuse_enabled: bool = False # enable via .env: LANGFUSE_ENABLED=true
 
     # ── FAISS Vector Store ────────────────────────────────────────────────────
     faiss_index_path: str = "./data/faiss_index"
