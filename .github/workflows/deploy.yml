@@ -1,0 +1,40 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          timeout: 300s
+          script: |
+            cd /home/ubuntu/resume-coach
+
+            # Pull latest code
+            git pull origin main
+
+            # Build frontend
+            cd frontend
+            npm ci
+            npm run build
+            cd ..
+
+            # Restart containers
+            sudo docker compose down
+            sudo docker compose up --build -d
+
+            # Verify running
+            sudo docker compose ps
+            curl -f http://localhost/health && echo "✅ Deploy successful" || echo "❌ Health check failed"
