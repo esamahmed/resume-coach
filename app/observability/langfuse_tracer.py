@@ -2,14 +2,17 @@
 app/observability/langfuse_tracer.py
 
 Langfuse span-level tracing — every agent node emits its own span.
-Falls back silently to no-op if Langfuse is disabled, keys are missing,
-or the API version differs. The pipeline NEVER fails due to tracing errors.
+Falls back silently to no-op if Langfuse is disabled or keys are missing.
+The pipeline NEVER fails due to tracing errors.
 
-Compatible with Langfuse v4.x SDK.
-Set LANGFUSE_ENABLED=false in .env to skip tracing entirely during local dev.
+Compatible with Langfuse Python SDK v4.x.
+Uses get_client() + start_as_current_observation() — the v4 API.
+
+Set LANGFUSE_ENABLED=false in .env to skip tracing during local dev.
 """
 from __future__ import annotations
 import logging
+import os
 from contextlib import contextmanager
 from typing import Any, Generator
 
@@ -24,6 +27,8 @@ class _NullSpan:
         pass
     def end(self) -> None:
         pass
+    def set_trace_io(self, **kwargs: Any) -> None:
+        pass
     def __enter__(self):
         return self
     def __exit__(self, *args):
@@ -37,17 +42,19 @@ class LangfuseTracer:
             settings.langfuse_enabled
             and bool(settings.langfuse_public_key)
             and bool(settings.langfuse_secret_key)
+            and not settings.langfuse_public_key.startswith("pk-lf-YOUR")
         )
         self._client = None
 
         if self._enabled:
             try:
-                from langfuse import Langfuse
-                self._client = Langfuse(
-                    public_key=settings.langfuse_public_key,
-                    secret_key=settings.langfuse_secret_key,
-                    host=settings.langfuse_host,
-                )
+                # Set env vars before get_client() — v4 reads from environment
+                os.environ["LANGFUSE_PUBLIC_KEY"] = settings.langfuse_public_key
+                os.environ["LANGFUSE_SECRET_KEY"] = settings.langfuse_secret_key
+                os.environ["LANGFUSE_HOST"] = settings.langfuse_host
+
+                from langfuse import get_client
+                self._client = get_client()
                 logger.info("Langfuse tracer initialised — host=%s", settings.langfuse_host)
             except Exception as e:
                 logger.warning("Langfuse init failed, using no-op tracer: %s", e)
@@ -62,56 +69,38 @@ class LangfuseTracer:
         **kwargs: Any,
     ) -> Generator[Any, None, None]:
         """
-        Context manager that emits a Langfuse span.
-        Never raises — if tracing fails the pipeline continues normally.
-        Compatible with Langfuse v4.x SDK.
+        Context manager that emits a Langfuse span using v4 API.
+        Never raises — pipeline continues normally on tracing errors.
         """
         if not self._enabled or self._client is None:
             yield _NullSpan()
             return
 
-        trace = None
-        span = None
         try:
-            # Langfuse v4 API — create trace then span
-            trace = self._client.trace(
-                name=f"resume-coach-{name}",
-                session_id=session_id or None,
-                input=input_data or {},
-                tags=["resume-coach"],
-            )
-            span = trace.span(
-                name=name,
-                input=input_data or {},
-            )
-        except Exception as e:
-            logger.warning("Langfuse span creation failed, continuing: %s", e)
-            yield _NullSpan()
-            return
+            from langfuse import propagate_attributes
 
-        try:
-            yield span
-        except Exception as exc:
-            try:
-                if span:
-                    span.update(
-                        metadata={"error": str(exc)},
-                        level="ERROR",
-                    )
-            except Exception:
-                pass
-            raise
-        finally:
-            try:
-                if span:
-                    span.end()
-            except Exception:
-                pass
-            try:
-                if trace:
-                    trace.update(output={"status": "complete"})
-            except Exception:
-                pass
+            with propagate_attributes(
+                trace_name=f"resume-coach-{name}",
+                session_id=session_id or None,
+                tags=["resume-coach"],
+            ):
+                with self._client.start_as_current_observation(
+                    as_type="span",
+                    name=name,
+                    input=input_data or {},
+                ) as span:
+                    try:
+                        yield span
+                    except Exception as exc:
+                        try:
+                            span.update(output={"error": str(exc)})
+                        except Exception:
+                            pass
+                        raise
+
+        except Exception as e:
+            logger.warning("Langfuse span failed, continuing: %s", e)
+            yield _NullSpan()
 
     def get_trace_url(self, session_id: str) -> str:
         if not self._enabled or self._client is None:
@@ -123,6 +112,7 @@ class LangfuseTracer:
         if self._enabled and self._client:
             try:
                 self._client.flush()
+                logger.debug("Langfuse flush complete")
             except Exception as e:
                 logger.warning("Langfuse flush failed: %s", e)
 
