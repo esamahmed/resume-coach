@@ -26,7 +26,7 @@ app = FastAPI(
     title="AI Resume Coach",
     description="LangGraph + FAISS + Langfuse powered resume coaching API",
     version="1.0.0",
-    openapi_version="3.0.3",    # ← change from 3.1.0 to 3.0.3
+    openapi_version="3.1.0",
 )
 
 app.add_middleware(
